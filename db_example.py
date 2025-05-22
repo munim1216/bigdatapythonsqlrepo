@@ -8,25 +8,36 @@ def get_connection_to_database():
                                    database='munima_db')
 
 
-connection = get_connection_to_database()
-cursor = connection.cursor()
+def execute_statement(connection, statement):
+    cursor = connection.cursor()
+    cursor.execute(statement)
 
-query = "SELECT * FROM Departments"
+    results = []
+    for row in cursor:
+        results.append(row)
 
-cursor.execute(query)
+    cursor.close()
+    connection.close()
+    return results
 
-print("Select a department name:")
 
-for row in cursor:
-    print("" + str(row[0]) + ".", row[1])
+def get_student_schedule(student_id):
+    statement = f"CALL Get_Student_Schedule({student_id})"
+    return execute_statement(get_connection_to_database(), statement)
 
-department = input("Enter your department choice: ")
 
-query = f"SELECT teacherName FROM Teachers WHERE department={department}"
+student_id = input("Enter StudentID: ")
 
-cursor.execute(query)
+results = get_student_schedule(student_id)
 
-for row in cursor:
-    print(row[0])
-cursor.close()
-connection.close()
+for row in results:
+    period = row[0]
+    course = row[1]
+    room = row[2]
+    teacher = row[3]
+    print(f"Period: {period}")
+    print(f"Course: {course}")
+    print(f"Room: {room}")
+    print(f"Teacher: {teacher}")
+    print()
+
