@@ -1,7 +1,11 @@
+import re
+
 import mysql.connector
 
 FIRST_PERIOD = 1
 TENTH_PERIOD = 10
+
+
 def get_connection_to_database():
     return mysql.connector.connect(user='munima',
                                    password='233179548',
@@ -36,9 +40,11 @@ def get_class_in_period(period):
     statement = f"SELECT pd{period} FROM Schedules WHERE scheduleID={student_id}"
     return execute_statement(get_connection_to_database(), statement)[0][0]
 
+
 def get_class_name(class_id):
     statement = f"SELECT courseName FROM CourseOfferings INNER JOIN Courses ON Courses.courseID = CourseOfferings.course WHERE offeringID = {class_id};"
-    return execute_statement(get_connection_to_database(), statement)
+    return execute_statement(get_connection_to_database(), statement)[0][0]
+
 
 def view_student_schedule():
     results = get_student_schedule()
@@ -64,9 +70,14 @@ def view_class_specific_grades(class_id):
 
 
 def view_overall_grades():
+    ap_grade_added = 0
+    ap_amt = 0
+    regular_grade_added = 0
+    regular_amt = 0
     for period in range(FIRST_PERIOD, TENTH_PERIOD + 1):
         class_id = get_class_in_period(period)
         results = get_class_grades(class_id)
+        class_name = get_class_name(get_class_in_period(period))
 
         minor_grades = 0
         minor_grade_amt = 0
@@ -85,20 +96,54 @@ def view_overall_grades():
         minor_grades /= minor_grade_amt
 
         average = ((major_grades * 0.7) + (minor_grades * 0.3))
-        print(f"Period {period} Average: {average}")
+        average *= 100
+
+        newavg = int(average)
+        newavg /= 100
+
+        stringavg = str(newavg)
+        extrazero = ""
+
+        if len(stringavg) == 4:
+            extrazero = "0"
+
+        if re.search("AP", class_name) != None:
+            ap_grade_added += newavg
+            ap_amt += 1
+        else:
+            regular_grade_added += newavg
+            regular_amt += 1
+        print(f"{class_name} Average: {newavg}{extrazero}%")
+
+    ap_avg = 0
+    if ap_amt > 0:
+        ap_avg = ap_grade_added / ap_amt
+
+    regular_avg = regular_grade_added / regular_amt
+
+    total_avg = (ap_avg * 1.1 + regular_avg) / 2
+
+    print(f"Total Average: {total_avg}")
 
 
-student_id = input("Enter StudentID: ")
-option_chosen = -1
 
-while int(option_chosen) != 4:
-    option_chosen = input("Choose An Option\n1. Schedule\n2. Class Specific Grades\n3. Overall Grade\n4. "
-                          "Quit\n\nChoice: ")
-    if int(option_chosen) == 1:
-        view_student_schedule()
-    elif int(option_chosen) == 2:
-        selected_period = input("Enter period you take this class: ")
-        course_offering_id = get_class_in_period(selected_period)
-        view_class_specific_grades(course_offering_id)
-    elif int(option_chosen) == 3:
-        view_overall_grades()
+print("Welcome are you a:\n1. Student\n2. Teacher\n3. Administrator")
+
+user_type = input("Choice: ")
+
+if user_type == 1:
+
+    student_id = input("Enter StudentID: ")
+    option_chosen = -1
+
+    while int(option_chosen) != 4:
+        option_chosen = input("Choose An Option\n1. Schedule\n2. Class Specific Grades\n3. Overall Grade\n4. "
+                              "Quit\n\nChoice: ")
+        if int(option_chosen) == 1:
+            view_student_schedule()
+        elif int(option_chosen) == 2:
+            selected_period = input("Enter period you take this class: ")
+            course_offering_id = get_class_in_period(selected_period)
+            view_class_specific_grades(course_offering_id)
+        elif int(option_chosen) == 3:
+            view_overall_grades()
